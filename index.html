@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>에휴 타이머</title>
+    <style>
+        body { font-family: sans-serif; background: #f3f4f6; margin: 0; text-align: center; }
+        header { background: #1f2937; color: white; padding: 10px; font-size: 12px; }
+        .card { background: white; margin: 50px auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 350px; }
+        #display { font-size: 60px; font-weight: 900; margin: 20px 0; }
+        .input-group { margin-bottom: 20px; }
+        input { width: 60px; font-size: 24px; text-align: center; border: none; border-bottom: 2px solid #ccc; }
+        button { padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; margin: 5px; }
+        #btn-start { background: #2563eb; color: white; }
+        #btn-reset { background: #e5e7eb; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <header>하시소프트웨어</header>
+    <div class="card">
+        <h1>에휴 타이머 ⏱️</h1>
+        <div id="display">00:00</div>
+        <div id="input-area" class="input-group">
+            <input type="number" id="min" value="0" min="0" max="60">분
+            <input type="number" id="sec" value="10" min="0" max="59">초
+        </div>
+        <button id="btn-start">시작</button>
+        <button id="btn-reset">초기화</button>
+        <div style="margin-top:20px; font-size:12px; color:#999; cursor:pointer;" onclick="playSigh()">🔊 소리 테스트</div>
+    </div>
+
+    <script>
+        const disp = document.getElementById('display');
+        const inArea = document.getElementById('input-area');
+        const bStart = document.getElementById('btn-start');
+        let total = 0, timer = null;
+        const sighAudio = new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ko&q=${encodeURIComponent("에휴.")}`);
+        sighAudio.playbackRate = 0.8;
+
+        function playSigh() {
+            if (navigator.vibrate) navigator.vibrate(5000);
+            sighAudio.currentTime = 0;
+            sighAudio.play().catch(() => alert("화면을 클릭 후 다시 시도하세요."));
+        }
+
+        function playBeep() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.connect(g); g.connect(ctx.destination);
+            g.gain.setValueAtTime(0.05, ctx.currentTime);
+            osc.start(); osc.stop(ctx.currentTime + 0.1);
+        }
+
+        bStart.onclick = () => {
+            if (timer) {
+                clearInterval(timer); timer = null;
+                bStart.innerText = "시작";
+                return;
+            }
+            if (total === 0) total = (parseInt(document.getElementById('min').value) * 60) + parseInt(document.getElementById('sec').value);
+            if (total <= 0) return;
+
+            inArea.classList.add('hidden');
+            bStart.innerText = "일시정지";
+            timer = setInterval(() => {
+                total--;
+                const m = String(Math.floor(total / 60)).padStart(2, '0');
+                const s = String(total % 60).padStart(2, '0');
+                disp.innerText = `${m}:${s}`;
+                if (total > 0) playBeep();
+                else {
+                    clearInterval(timer); timer = null;
+                    playSigh();
+                    disp.innerText = "에휴";
+                    inArea.classList.remove('hidden');
+                    bStart.innerText = "다시 시작";
+                }
+            }, 1000);
+        };
+
+        document.getElementById('btn-reset').onclick = () => {
+            clearInterval(timer); timer = null;
+            total = 0; disp.innerText = "00:00";
+            inArea.classList.remove('hidden');
+            bStart.innerText = "시작";
+            if (navigator.vibrate) navigator.vibrate(0);
+        };
+    </script>
+</body>
+</html>
