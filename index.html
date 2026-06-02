@@ -3,30 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>보이스 타이머</title>
+    <title>라이스타이머</title>
     <style>
         body { font-family: sans-serif; background: #f3f4f6; margin: 0; text-align: center; }
         header { background: #1f2937; color: white; padding: 10px; font-size: 12px; }
         .card { background: white; margin: 40px auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 350px; }
-        #display { font-size: 54px; font-weight: 900; margin: 15px 0; word-break: break-all; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+        #display { font-size: 32px; font-weight: 900; margin: 15px 0; word-break: keep-all; min-height: 80px; display: flex; align-items: center; justify-content: center; line-height: 1.4; color: #1f2937; }
         .input-group { margin-bottom: 20px; }
         .input-group input[type="number"] { width: 60px; font-size: 24px; text-align: center; border: none; border-bottom: 2px solid #ccc; margin: 0 5px; }
-        .text-input-group, .select-group { margin-bottom: 20px; text-align: left; }
-        .text-input-group label, .select-group label { display: block; font-size: 13px; color: #4b5563; font-weight: bold; margin-bottom: 5px; }
+        .text-input-group, .select-group, .toggle-group { margin-bottom: 20px; text-align: left; }
+        .text-input-group label, .select-group label, .toggle-group label.title-label { display: block; font-size: 13px; color: #4b5563; font-weight: bold; margin-bottom: 5px; }
         .text-input-group input[type="text"] { width: 100%; padding: 8px 12px; font-size: 15px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         .select-group select { width: 100%; padding: 8px 12px; font-size: 15px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; background-color: white; }
         button { padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; margin: 5px; }
         #btn-start { background: #2563eb; color: white; }
         #btn-reset { background: #e5e7eb; }
         .hidden { display: none; }
+
+        /* 토글 스위치 스타일 */
+        .toggle-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9fafb;
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 1px dashed #ddd;
+            margin-bottom: 10px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #10b981;
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
     </style>
 </head>
 <body>
     <header>하시소프트웨어</header>
     <div class="card">
-        <h1>보이스 타이머 ⏱️</h1>
+        <h1>라이스타이머 ⏱️</h1>
        
-        <!-- 타이머 및 텍스트 표시 영역 -->
+        <!-- 타이머 및 텍스트 표시 영역 (글자가 길어질 수 있으므로 폰트 크기 유동 조정 가능하게 설정) -->
         <div id="display">00:00</div>
        
         <!-- 시간 입력 설정 영역 -->
@@ -35,11 +83,20 @@
             <input type="number" id="sec" value="10" min="0" max="59">초
         </div>
 
-        <!-- 음성 종류 선택 메뉴 -->
+        <!-- 알람옵션 선택 메뉴 -->
+        <div id="alert-type-area" class="select-group">
+            <label for="alert-type">알람옵션:</label>
+            <select id="alert-type">
+                <option value="voice" selected>음성 (TTS) 재생</option>
+                <option value="sound">알람소리 재생</option>
+            </select>
+        </div>
+
+        <!-- 음성(TTS) 종류 선택 메뉴 (알림 방식이 '음성'일 때만 활성화) -->
         <div id="tts-mode-area" class="select-group">
             <label for="tts-mode">음성 종류 선택:</label>
             <select id="tts-mode">
-                <option value="google">재미나용 TTS (인터넷 음성)</option>
+                <option value="google">HTML 파일용 TTS (인터넷 음성)</option>
                 <option value="browser" selected>브라우저용 TTS (기기 기본 음성)</option>
             </select>
         </div>
@@ -50,22 +107,83 @@
             <input type="text" id="custom-text" value="에휴" maxlength="100" placeholder="타이머 종료 시 읽어줄 글자를 입력하세요.">
         </div>
 
+        <!-- 알람소리 파일 선택 메뉴 -->
+        <div id="alarm-sound-area" class="select-group hidden">
+            <label for="alarm-sound">알람소리 선택:</label>
+            <select id="alarm-sound">
+                <option value="sigh">에휴우우우우우우우~~!</option>
+                <option value="hello">안녕하세요!</option>
+                <option value="sixseven">six seven!</option>
+                <option value="birthday">생일 축하 노래</option>
+            </select>
+        </div>
+
+        <!-- 반복 설정 스위치 -->
+        <div class="toggle-group">
+            <label class="title-label">알람 반복 설정:</label>
+            <div class="toggle-container">
+                <span style="font-size: 14px; color: #4b5563;">알람/음성 무한 반복</span>
+                <label class="switch">
+                    <input type="checkbox" id="repeat-toggle">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 진동 패턴 스타일 선택 메뉴 -->
+        <div id="vibrate-pattern-area" class="select-group">
+            <label for="vibrate-pattern">진동 스타일 선택:</label>
+            <select id="vibrate-pattern">
+                <option value="none">진동 없음</option>
+                <option value="continuous" selected>길게 한 번 (기본 5초)</option>
+                <option value="heartbeat">두근두근 (심장 박동)</option>
+                <option value="sos">SOS 구조 신호 (...---...)</option>
+                <option value="rapid">빠른 연속 진동 (사이렌)</option>
+            </select>
+        </div>
+
         <button id="btn-start">시작</button>
         <button id="btn-reset">초기화</button>
-        <div style="margin-top:20px; font-size:12px; color:#999; cursor:pointer;" onclick="playSigh()">🔊 소리 테스트</div>
+        <div style="margin-top:20px; font-size:12px; color:#999; cursor:pointer;" onclick="testAlertSound()">🔊 알림 미리 들어보기</div>
     </div>
+
+    <!-- 브라우저에 직접 연동될 수 있도록 HTML5 오디오 소스 요소를 명시적으로 선언 -->
+    <audio id="audio-sigh" src="에휴우우우우우우우~~!.mp3" preload="auto"></audio>
+    <audio id="audio-hello" src="안녕하세요!.mp3" preload="auto"></audio>
+    <audio id="audio-sixseven" src="six seven!.mp3" preload="auto"></audio>
+    <audio id="audio-birthday" src="하시소프트웨어 멜로디IC hbt2026 생일축하합니다 1.5V~3V 부저 호환가능.mp3" preload="auto"></audio>
 
     <script>
         const disp = document.getElementById('display');
         const inArea = document.getElementById('input-area');
+       
+        const alertTypeSelect = document.getElementById('alert-type');
+        const alertTypeArea = document.getElementById('alert-type-area');
+       
         const ttsModeSelect = document.getElementById('tts-mode');
         const ttsModeArea = document.getElementById('tts-mode-area');
+       
         const customTextArea = document.getElementById('custom-text-area');
         const customTextInput = document.getElementById('custom-text');
+       
+        const alarmSoundArea = document.getElementById('alarm-sound-area');
+        const alarmSoundSelect = document.getElementById('alarm-sound');
+        const repeatToggle = document.getElementById('repeat-toggle');
+        const vibratePatternSelect = document.getElementById('vibrate-pattern');
+       
         const bStart = document.getElementById('btn-start');
         let total = 0, timer = null;
+        let isTTSLooping = false; // TTS 반복 처리를 위한 제어 플래그
 
-        // 브라우저 기본 TTS 음성 목록 준비 (크롬북 등 특화 브라우저 지원용)
+        // HTML 태그로 선언된 오디오 객체 목록
+        const alarmSounds = {
+            sigh: document.getElementById('audio-sigh'),
+            hello: document.getElementById('audio-hello'),
+            sixseven: document.getElementById('audio-sixseven'),
+            birthday: document.getElementById('audio-birthday')
+        };
+
+        // 브라우저 기본 TTS 음성 목록 준비
         let voices = [];
         function loadVoices() {
             if ('speechSynthesis' in window) {
@@ -79,46 +197,163 @@
             }
         }
 
-        // 전체 알림음 및 진동 실행 통합 제어 함수
-        function playSigh() {
-            if (navigator.vibrate) navigator.vibrate(5000); // 5초 진동
-
-            const selectedMode = ttsModeSelect.value;
-            let userText = customTextInput.value.trim();
-            if (!userText) userText = "에휴";
-
-            if (selectedMode === "google") {
-                // [재미나용 TTS] 실행 방식
-                const sighUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ko&q=${encodeURIComponent(userText + ".")}`;
-                const sighAudio = new Audio(sighUrl);
-                sighAudio.playbackRate = 1.0; // 기본 속도
-                sighAudio.volume = 1.0; // 볼륨 최대
-                sighAudio.play().catch((err) => {
-                    console.warn("오디오 재생 실패 (사용자 인터랙션 필요):", err);
-                });
+        // 알림 방식 선택에 따라 입력 인터페이스 변경하기
+        alertTypeSelect.onchange = () => {
+            const type = alertTypeSelect.value;
+            if (type === "voice") {
+                ttsModeArea.classList.remove('hidden');
+                customTextArea.classList.remove('hidden');
+                alarmSoundArea.classList.add('hidden');
             } else {
-                // [브라우저용 TTS] 실행 방식
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel(); // 이전 소리 취소
-                    setTimeout(() => {
-                        const utterance = new SpeechSynthesisUtterance(userText);
-                        utterance.lang = "ko-KR";
+                ttsModeArea.classList.add('hidden');
+                customTextArea.classList.add('hidden');
+                alarmSoundArea.classList.remove('hidden');
+            }
+            playAlert(false);
+        };
 
-                        const koreanVoice = voices.find(voice => voice.lang.includes('ko') || voice.lang.includes('KR'));
-                        if (koreanVoice) {
-                            utterance.voice = koreanVoice;
-                        }
+        // 서브 옵션들 변경 시에도 즉시 1회 재생
+        ttsModeSelect.onchange = () => {
+            playAlert(false);
+        };
 
-                        utterance.rate = 1.0; // 기본 속도
-                        utterance.pitch = 1.0;
-                        utterance.volume = 1.0;
+        alarmSoundSelect.onchange = () => {
+            playAlert(false);
+        };
 
-                        window.speechSynthesis.speak(utterance);
-                    }, 50);
+        // 패턴별 진동 유도 함수
+        function triggerVibration() {
+            if (!navigator.vibrate) return;
+           
+            const patternType = vibratePatternSelect.value;
+            if (patternType === "none") {
+                navigator.vibrate(0);
+            } else if (patternType === "continuous") {
+                navigator.vibrate(5000); // 5초 연속
+            } else if (patternType === "heartbeat") {
+                // 심장 박동 느낌의 간헐적 진동
+                navigator.vibrate([200, 200, 200, 600, 200, 200, 200, 600]);
+            } else if (patternType === "sos") {
+                // 구조 신호 스펙트럼 (...---...)
+                navigator.vibrate([100, 100, 100, 100, 100, 300, 300, 100, 300, 100, 300, 300, 100, 100, 100, 100, 100]);
+            } else if (patternType === "rapid") {
+                // 짧고 경쾌하며 강렬한 사이렌 스타일 진동
+                navigator.vibrate([150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150]);
+            }
+        }
+
+        // 알림음 및 음성 실행 통합 제어 함수
+        function playAlert(triggerVibe = true) {
+            // 진동 요청 시 패턴 실행
+            if (triggerVibe) {
+                triggerVibration();
+            }
+
+            const alertType = alertTypeSelect.value;
+            const isRepeatEnabled = repeatToggle.checked;
+
+            if (alertType === "voice") {
+                // [음성(TTS) 알림]
+                const selectedMode = ttsModeSelect.value;
+                let userText = customTextInput.value.trim();
+                if (!userText) userText = "에휴";
+
+                // 기존 MP3 오디오 모두 일시 정지 및 초기화
+                stopAllAlarms();
+
+                if (selectedMode === "google") {
+                    // HTML 파일용 TTS (인터넷 음성)
+                    const sighUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ko&q=${encodeURIComponent(userText + ".")}`;
+                    const sighAudio = new Audio(sighUrl);
+                    sighAudio.playbackRate = 1.0;
+                    sighAudio.volume = 1.0;
+
+                    // 반복 설정이 켜진 경우 오디오 객체의 loop 사용
+                    if (isRepeatEnabled) {
+                        sighAudio.loop = true;
+                    }
+                    sighAudio.play().catch((err) => {
+                        console.warn("인터넷 TTS 재생 실패:", err);
+                    });
                 } else {
-                    console.warn("이 브라우저는 기본 TTS를 지원하지 않습니다.");
+                    // 브라우저용 TTS (기기 기본 음성)
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                        isTTSLooping = isRepeatEnabled; // 플래그 연동
+
+                        setTimeout(() => {
+                            const utterance = new SpeechSynthesisUtterance(userText);
+                            utterance.lang = "ko-KR";
+
+                            const koreanVoice = voices.find(voice => voice.lang.includes('ko') || voice.lang.includes('KR'));
+                            if (koreanVoice) {
+                                utterance.voice = koreanVoice;
+                            }
+
+                            utterance.rate = 1.0;
+                            utterance.pitch = 1.0;
+                            utterance.volume = 1.0;
+
+                            // 로컬 TTS 무한 반복 핸들러 설계
+                            utterance.onend = () => {
+                                if (isTTSLooping) {
+                                    playAlert(false); // 재귀 호출 (진동은 반복 없이 음성만 재생)
+                                }
+                            };
+
+                            window.speechSynthesis.speak(utterance);
+                        }, 50);
+                    } else {
+                        console.warn("이 브라우저는 기본 TTS를 지원하지 않습니다.");
+                    }
+                }
+            } else {
+                // [알람소리(MP3) 알림]
+                const selectedSoundKey = alarmSoundSelect.value;
+               
+                // 기존 재생 중인 모든 오디오 중지
+                stopAllAlarms();
+
+                const audio = alarmSounds[selectedSoundKey];
+                if (audio) {
+                    audio.volume = 1.0;
+                    // 사용자가 반복 사용 설정을 원한다면 HTML5 오디오 루프 속성 적용
+                    audio.loop = isRepeatEnabled;
+
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch((err) => {
+                            console.warn("알람 오디오 재생 실패:", err);
+                        });
+                    }
                 }
             }
+        }
+
+        // 재생 중인 오디오 완전 초기화용 헬퍼 함수
+        function stopAllAlarms() {
+            for (let key in alarmSounds) {
+                if (alarmSounds[key]) {
+                    alarmSounds[key].pause();
+                    alarmSounds[key].currentTime = 0;
+                    alarmSounds[key].loop = false; // 루프 상태 초기화
+                }
+            }
+            // 로컬 TTS 루프 정지
+            isTTSLooping = false;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        // 수동 미리 들어보기 동작용 함수 (진동 포함하여 실행)
+        function testAlertSound() {
+            for (let key in alarmSounds) {
+                if (alarmSounds[key]) alarmSounds[key].load();
+            }
+            setTimeout(() => {
+                playAlert(true);
+            }, 100);
         }
 
         // 카운트다운 초당 '삐' 소리
@@ -132,11 +367,14 @@
         }
 
         bStart.onclick = () => {
-            // 브라우저의 소리/TTS 자동재생 제한 정책 사전 잠금 해제
+            // 브라우저 자동재생 제약 해제 사전 진행
             if ('speechSynthesis' in window) {
                 const silent = new SpeechSynthesisUtterance('');
                 silent.volume = 0;
                 window.speechSynthesis.speak(silent);
+            }
+            for (let key in alarmSounds) {
+                if (alarmSounds[key]) alarmSounds[key].load();
             }
 
             if (timer) {
@@ -148,12 +386,17 @@
             if (total === 0) total = (parseInt(document.getElementById('min').value) * 60) + parseInt(document.getElementById('sec').value);
             if (total <= 0) return;
 
-            // 타이머 실행 시 입력창들 모두 숨김
+            // 타이머 실행 시 설정창 인터페이스 임시 숨김
             inArea.classList.add('hidden');
+            alertTypeArea.classList.add('hidden');
             ttsModeArea.classList.add('hidden');
             customTextArea.classList.add('hidden');
+            alarmSoundArea.classList.add('hidden');
             bStart.innerText = "일시정지";
            
+            // 디스플레이 폰트 사이즈 복원
+            disp.style.fontSize = "54px";
+
             timer = setInterval(() => {
                 total--;
                 const m = String(Math.floor(total / 60)).padStart(2, '0');
@@ -163,18 +406,37 @@
                 if (total > 0) {
                     playBeep();
                 } else {
-                    // 타이머 완전 종료
+                    // 타이머 최종 종료
                     clearInterval(timer); timer = null;
-                    playSigh();
+                    playAlert(true);
                    
-                    // 입력 텍스트를 결과 화면에 표시
-                    const endText = customTextInput.value.trim() || "에휴";
-                    disp.innerText = endText;
+                    // 종료 화면 텍스트 결정 및 폰트 유동 조절
+                    const alertType = alertTypeSelect.value;
+                    if (alertType === "voice") {
+                        disp.style.fontSize = "32px";
+                        disp.innerText = customTextInput.value.trim() || "에휴";
+                    } else {
+                        const selectedSoundKey = alarmSoundSelect.value;
+                        if (selectedSoundKey === "birthday") {
+                            // 생일 축하 노래 전용 텍스트 노출
+                            disp.style.fontSize = "22px"; // 글자 길이를 고려하여 줄임
+                            disp.innerText = "생일축하합니다 생일축하합니다 사랑하는 당신의 생일축하합니다!";
+                        } else {
+                            disp.style.fontSize = "32px";
+                            const selectedOption = alarmSoundSelect.options[alarmSoundSelect.selectedIndex];
+                            disp.innerText = selectedOption.text;
+                        }
+                    }
                    
                     // 입력창 노출 복원
                     inArea.classList.remove('hidden');
-                    ttsModeArea.classList.remove('hidden');
-                    customTextArea.classList.remove('hidden');
+                    alertTypeArea.classList.remove('hidden');
+                    if (alertType === "voice") {
+                        ttsModeArea.classList.remove('hidden');
+                        customTextArea.classList.remove('hidden');
+                    } else {
+                        alarmSoundArea.classList.remove('hidden');
+                    }
                     bStart.innerText = "다시 시작";
                 }
             }, 1000);
@@ -183,14 +445,28 @@
         document.getElementById('btn-reset').onclick = () => {
             clearInterval(timer); timer = null;
             total = 0;
+           
+            // 리셋 시 폰트 기본값 복원
+            disp.style.fontSize = "54px";
             disp.innerText = "00:00";
            
-            // 모든 컨트롤창 복원
+            // 모든 설정 컨트롤창 복구
             inArea.classList.remove('hidden');
-            ttsModeArea.classList.remove('hidden');
-            customTextArea.classList.remove('hidden');
+            alertTypeArea.classList.remove('hidden');
+            const alertType = alertTypeSelect.value;
+            if (alertType === "voice") {
+                ttsModeArea.classList.remove('hidden');
+                customTextArea.classList.remove('hidden');
+                alarmSoundArea.classList.add('hidden');
+            } else {
+                ttsModeArea.classList.add('hidden');
+                customTextArea.classList.add('hidden');
+                alarmSoundArea.classList.remove('hidden');
+            }
             bStart.innerText = "시작";
+           
             if (navigator.vibrate) navigator.vibrate(0); // 진동 중지
+            stopAllAlarms(); // 오디오 및 TTS 출력 즉시 완전히 중지
         };
     </script>
 </body>
